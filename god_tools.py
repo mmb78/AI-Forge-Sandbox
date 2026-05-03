@@ -2,6 +2,8 @@ import os
 import json
 import subprocess
 import traceback
+import logging
+import sys
 import re
 from datetime import datetime
 from fastmcp import FastMCP
@@ -9,6 +11,13 @@ from openai import OpenAI
 import config
 
 mcp = FastMCP("TheForge")
+
+# --- MCP STREAM PROTECTION ---
+# Suppress all third-party Python logging to prevent them from printing 
+# rogue text to stdout and corrupting the FastMCP JSON-RPC stream.
+logging.getLogger().setLevel(logging.CRITICAL)
+logging.getLogger("httpx").setLevel(logging.CRITICAL)
+logging.getLogger("openai").setLevel(logging.CRITICAL)
 
 WORKSPACE_DIR = "/app/workspace"
 STATE_DIR = os.path.join(WORKSPACE_DIR, "state")
@@ -62,7 +71,17 @@ def execute_bash(command: str, timeout_seconds: int = 60) -> str:
     """Executes a bash command STRICTLY inside the sandbox directory. 
     'timeout_seconds' defaults to 60. Increase it up to 600 if you expect a long-running process like a massive download."""
     try:
-        result = subprocess.run(command, shell=True, cwd=SANDBOX_DIR, capture_output=True, text=True, timeout=timeout_seconds)
+        result = subprocess.run(
+            command, 
+            shell=True, 
+            cwd=SANDBOX_DIR, 
+            capture_output=True, 
+            text=True, 
+            timeout=timeout_seconds,
+            stdin=subprocess.DEVNULL,   # Prevents children from stealing the MCP input stream
+            start_new_session=True      # Traps grandchild daemons (like Playwright) in an isolated process group
+        )
+        
         output = result.stdout if result.returncode == 0 else result.stderr
         
         # Preview + File Redirection Prompt ---

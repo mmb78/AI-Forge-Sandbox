@@ -7,7 +7,7 @@ ACTIVE_SUMMARIZER_PROFILE = 1 # Can be the same as coder, or a cheaper fast mode
 MAX_FORGE_RETRIES = 3
 
 # --- MEMORY SETTINGS ---
-MAX_CONTEXT_TOKENS = 32768 # The max tokens you want the active history to reach
+MAX_CONTEXT_TOKENS = 60000 # The max tokens you want the active history to reach - there is hard limit on OpenAI call, we have to prevent hitting that!
 
 # --- SESSION MANAGEMENT ---
 # Set to None for a fresh, empty session every time. 
